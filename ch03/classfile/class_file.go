@@ -80,3 +80,35 @@ func (self *ClassFile) SuperClassName() string {
   }
   return ""
 }
+
+func (self *ClassFile) InterfaceNames() []string {
+  interfaceNames := make([]string, len(self.interfaces))
+  for i, cpIndex := range self.interfaces {
+    interfaceNames[i] = self.constantPool.getClassName(cpIndex)
+  }
+  return interfaceNames
+}
+
+// Java虚拟机规范规定,如果加载的class文件不符合要求的格式,
+// Java虚拟机实现就得抛出java.lang.ClassFormatError异常
+func (self *ClassFile) readAndCheccMagic(reader *ClassReader) {
+  magic := reader.readUint32()
+  if magic != 0xCAFEBABE {
+    panic("java.lang.ClassFormatError: magic!")
+  }
+}
+
+// 判断版本号是否是Java SE 8之前
+func (self *ClassFile) readAndCheckVersion(reader *ClassReader) {
+  self.minorVersion = reader.readUint16()
+  self.majorVersion = reader.readUint16()
+  switch self.majorVersion {
+  case 45:
+    return
+  case 46, 47, 48, 49, 50, 51, 52:
+    if self.minorVersion == 0 {
+      return
+    }
+  }
+  panic("java.lang.UnsupportedClassVersionError!")
+}
